@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat</title>
+  <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.2/dist/index.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    #username-container, #chat-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    #chat-container {
+      display: flex;
+      flex-direction: column;
+      width: 400px;
+      height: 500px;
+    }
+    #header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    #avatar {
+      width: 40px;
+      height: 40px;
+      background-color: #25d366;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    #messages {
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    .message {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .message.user1 {
+      justify-content: flex-end;
+    }
+    .message.user2 {
+      justify-content: flex-start;
+    }
+    .message div {
+      max-width: 70%;
+      padding: 10px;
+      border-radius: 10px;
+      background-color: #e1ffc7;
+    }
+    .message.user1 div {
+      background-color: #dcf8c6;
+    }
+    #message-container {
+      display: flex;
+      align-items: center;
+    }
+    #message {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px;
+      border: none;
+      background-color: #25d366;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="username-container">
+    <input id="username" type="text" placeholder="Enter your name" />
+    <button onclick="setUsername()">Set Username</button>
+  </div>
+  <div id="chat-container" style="display: none;">
+    <div id="header">
+      <div id="avatar"></div>
+      <div id="user-name"></div>
+    </div>
+    <div id="messages"></div>
+    <div id="message-container">
+      <input id="message" type="text" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let socket = io('http://localhost:3000');
+    let username = '';
+
+    socket.on('message', (data) => {
+      const messages = document.getElementById('messages');
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message');
+      messageElement.classList.add(data.sender === username ? 'user1' : 'user2');
+      const messageContent = document.createElement('div');
+      messageContent.innerText = `${data.sender}: ${data.message}`;
+      messageElement.appendChild(messageContent);
+      messages.appendChild(messageElement);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    function setUsername() {
+      const usernameInput = document.getElementById('username');
+      username = usernameInput.value;
+      if (username.trim() !== '') {
+        const avatar = document.getElementById('avatar');
+        const userNameDisplay = document.getElementById('user-name');
+        const initials = username.charAt(0) + username.charAt(username.length - 1);
+        avatar.innerText = initials.toUpperCase();
+        userNameDisplay.innerText = username;
+
+        document.getElementById('username-container').style.display = 'none';
+        document.getElementById('chat-container').style.display = 'block';
+      }
+    }
+
+    function sendMessage() {
+      const messageInput = document.getElementById('message');
+      const message = messageInput.value;
+      if (message.trim() !== '') {
+        socket.emit('message', { sender: username, message });
+        messageInput.value = '';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const picker = new EmojiButton();
+      const button = document.querySelector('#emoji-button');
+      button.addEventListener('click', () => {
+        picker.togglePicker(button);
+      });
+      picker.on('emoji', emoji => {
+        document.querySelector('#message').value += emoji;
+      });
+    });
+  </script>
+</body>
+</html>
